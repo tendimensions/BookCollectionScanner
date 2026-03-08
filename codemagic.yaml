@@ -23,8 +23,8 @@ workflows:
         EXPORT_METHOD: ad-hoc   # options: development | ad-hoc | enterprise | app-store
 
       # Pull secret groups defined in Codemagic UI → Environment variables
-      # firebase_credentials must define: FIREBASE_APP_ID_ANDROID, FIREBASE_APP_ID_IOS,
-      #                                   FIREBASE_SERVICE_ACCOUNT
+      # firebase_credentials must define: FIREBASE_ANDROID_APP_ID, FIREBASE_IOS_APP_ID,
+      #                                   FIREBASE_SERVICE_ACCOUNT, NOTIFICATION_EMAIL
       groups:
         # - android_signing
         - ios_signing
@@ -202,11 +202,11 @@ workflows:
       firebase:
         firebase_service_account: $FIREBASE_SERVICE_ACCOUNT
         android:
-          app_id: $FIREBASE_APP_ID_ANDROID
+          app_id: $FIREBASE_ANDROID_APP_ID
           groups:
             - testers
         ios:
-          app_id: $FIREBASE_APP_ID_IOS
+          app_id: $FIREBASE_IOS_APP_ID
           groups:
             - testers
 

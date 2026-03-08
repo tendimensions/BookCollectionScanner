@@ -177,8 +177,7 @@ The Flutter mobile app is built and distributed via [Codemagic](https://codemagi
 |-------|-----------|
 | `android_signing` | `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` |
 | `ios_signing` | `CM_CERTIFICATE`, `CM_CERTIFICATE_PASSWORD`, `CM_PROVISIONING_PROFILE` |
-| `firebase_credentials` | `FIREBASE_APP_ID_ANDROID`, `FIREBASE_APP_ID_IOS`, `FIREBASE_SERVICE_ACCOUNT`, `FIREBASE_SERVICE_ACCOUNT_KEY` |
-| _(any group)_ | `NOTIFICATION_EMAIL` — recipient for build result emails |
+| `firebase_credentials` | `FIREBASE_ANDROID_APP_ID`, `FIREBASE_IOS_APP_ID`, `FIREBASE_SERVICE_ACCOUNT`, `NOTIFICATION_EMAIL` |
 
 ---
 
