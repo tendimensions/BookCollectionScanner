@@ -24,7 +24,8 @@ workflows:
 
       # Pull secret groups defined in Codemagic UI → Environment variables
       # firebase_credentials must define: FIREBASE_ANDROID_APP_ID, FIREBASE_IOS_APP_ID,
-      #                                   FIREBASE_SERVICE_ACCOUNT, NOTIFICATION_EMAIL
+      #                                   FIREBASE_SERVICE_ACCOUNT (service account JSON),
+      #                                   NOTIFICATION_EMAIL
       groups:
         # - android_signing
         - ios_signing
@@ -179,13 +180,6 @@ workflows:
           echo "Built on: $(date)" >> release_notes.txt
           echo "Created release notes:"
           cat release_notes.txt
-
-      - name: Authenticate Firebase CLI for App Distribution
-        script: |
-          echo "Authenticating Firebase CLI..."
-          echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > "$CM_BUILD_DIR/firebase_service_account.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$CM_BUILD_DIR/firebase_service_account.json"
-          echo "Firebase CLI authentication credentials set."
 
     artifacts:
       - build/app/outputs/**/*.apk
