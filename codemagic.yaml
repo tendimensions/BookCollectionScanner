@@ -321,7 +321,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - $NOTIFICATION_EMAIL
+          - jason@tendimensions.com
 
 # When ready for app stores, compute build numbers from stores:
 # scripts:
