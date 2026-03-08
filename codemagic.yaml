@@ -16,19 +16,15 @@ workflows:
       java: 21
       vars:
         # ---- App identifiers ----
-        # TODO: Update these after running `flutter create` / setting your package name
-        ANDROID_PACKAGE_NAME: com.example.book_collection_scanner
-        IOS_BUNDLE_ID: com.example.bookCollectionScanner
-
-        # ---- Firebase App Distribution ----
-        # TODO: Replace with your Firebase App IDs from the Firebase console
-        FIREBASE_APP_ID_ANDROID: YOUR_FIREBASE_ANDROID_APP_ID
-        FIREBASE_APP_ID_IOS: YOUR_FIREBASE_IOS_APP_ID
+        ANDROID_PACKAGE_NAME: com.tendimensions.bookcollectionscanner
+        IOS_BUNDLE_ID: com.tendimensions.bookcollectionscanner
 
         # ---- iOS export method ----
         EXPORT_METHOD: ad-hoc   # options: development | ad-hoc | enterprise | app-store
 
       # Pull secret groups defined in Codemagic UI → Environment variables
+      # firebase_credentials must define: FIREBASE_APP_ID_ANDROID, FIREBASE_APP_ID_IOS,
+      #                                   FIREBASE_SERVICE_ACCOUNT
       groups:
         # - android_signing
         - ios_signing
@@ -225,8 +221,8 @@ workflows:
   #     xcode: latest
   #     cocoapods: default
   #     vars:
-  #       ANDROID_PACKAGE_NAME: com.example.book_collection_scanner
-  #       IOS_BUNDLE_ID: com.example.bookCollectionScanner
+  #       ANDROID_PACKAGE_NAME: com.tendimensions.bookcollectionscanner
+  #       IOS_BUNDLE_ID: com.tendimensions.bookcollectionscanner
   #     groups:
   #       - android_signing
   #       - store_credentials     # ASC + Google Play
@@ -331,7 +327,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - "YOUR_EMAIL@example.com"   # TODO: replace with your email
+          - $NOTIFICATION_EMAIL
 
 # When ready for app stores, compute build numbers from stores:
 # scripts:
