@@ -16,7 +16,7 @@ workflows:
       java: 21
       vars:
         # ---- App identifiers ----
-        ANDROID_PACKAGE_NAME: com.tendimensions.bookcollectionscanner
+        ANDROID_PACKAGE_NAME: com.tendimensions.book_collection_scanner
         IOS_BUNDLE_ID: com.tendimensions.bookcollectionscanner
 
         # ---- iOS export method ----
@@ -59,6 +59,12 @@ workflows:
 
       - name: Flutter pub get
         script: flutter pub get
+
+      - name: Generate Android platform
+        script: |
+          echo "Generating Android platform files (v2 embedding)..."
+          flutter create --platforms=android --org com.tendimensions .
+          echo "✅ Android platform ready"
 
       - name: Run unit tests
         script: |
@@ -215,7 +221,7 @@ workflows:
   #     xcode: latest
   #     cocoapods: default
   #     vars:
-  #       ANDROID_PACKAGE_NAME: com.tendimensions.bookcollectionscanner
+  #       ANDROID_PACKAGE_NAME: com.tendimensions.book_collection_scanner
   #       IOS_BUNDLE_ID: com.tendimensions.bookcollectionscanner
   #     groups:
   #       - android_signing
