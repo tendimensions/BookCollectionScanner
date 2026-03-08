@@ -1,0 +1,15 @@
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    volumes:
+      # Persist the SQLite database outside the container
+      - ./data:/app/data
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/books.db
+      - GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY:-}
+      - SERVER_PORT=8000
+    restart: unless-stopped

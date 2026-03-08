@@ -1,0 +1,350 @@
+# codemagic.yaml
+# Book Collection Scanner — Flutter mobile app (in mobile/ subdirectory)
+# CI/CD: preview links via Firebase App Distribution
+workflows:
+
+  preview:
+    name: Preview (shareable links)
+    max_build_duration: 25
+    instance_type: mac_mini_m1
+    working_directory: mobile   # Flutter project lives in mobile/
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      java: 21
+      vars:
+        # ---- App identifiers ----
+        # TODO: Update these after running `flutter create` / setting your package name
+        ANDROID_PACKAGE_NAME: com.example.book_collection_scanner
+        IOS_BUNDLE_ID: com.example.bookCollectionScanner
+
+        # ---- Firebase App Distribution ----
+        # TODO: Replace with your Firebase App IDs from the Firebase console
+        FIREBASE_APP_ID_ANDROID: YOUR_FIREBASE_ANDROID_APP_ID
+        FIREBASE_APP_ID_IOS: YOUR_FIREBASE_IOS_APP_ID
+
+        # ---- iOS export method ----
+        EXPORT_METHOD: ad-hoc   # options: development | ad-hoc | enterprise | app-store
+
+      # Pull secret groups defined in Codemagic UI → Environment variables
+      groups:
+        # - android_signing
+        - ios_signing
+        - firebase_credentials
+
+    triggering:
+      events:
+        - tag
+      branch_patterns:
+        - pattern: "preview"
+          include: true
+          source: true
+      tag_patterns:
+        - pattern: "v+([0-9]).+([0-9]).+([0-9])"
+          include: true
+
+    cache:
+      cache_paths:
+        - ~/.pub-cache                      # Flutter/Dart packages
+        - ~/.gradle/caches                  # Android Gradle build cache
+        - ~/.gradle/wrapper                 # Gradle wrapper
+        - $ANDROID_SDK_ROOT/ndk             # Android NDK (2GB+, major time saver)
+        - $ANDROID_SDK_ROOT/build-tools     # Android build tools
+
+    scripts:
+      - name: Install Android NDK
+        script: |
+          echo "Installing Android NDK 28.1.13356709..."
+          sdkmanager --install "ndk;28.1.13356709" --channel=0
+          echo "✅ NDK installed successfully"
+
+      - name: Flutter pub get
+        script: flutter pub get
+
+      - name: Run unit tests
+        script: |
+          echo "Running Flutter unit tests..."
+          flutter test --reporter compact
+          echo "✅ All tests passed!"
+
+      - name: Set up Android keystore
+        script: |
+          # Requires: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+          #           ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD in android_signing group
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
+
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=keystore.jks
+          EOF
+
+      - name: Build Android APK (preview)
+        script: |
+          echo "Starting Android APK build..."
+
+          # Verify gradlew exists
+          if [ ! -f "android/gradlew" ]; then
+            echo "❌ ERROR: android/gradlew not found!"
+            exit 1
+          fi
+
+          # Verify NDK is available
+          if [ ! -d "$ANDROID_SDK_ROOT/ndk/28.1.13356709" ]; then
+            echo "⚠️ WARNING: NDK not found at expected location"
+            echo "Available NDKs:"
+            ls -la "$ANDROID_SDK_ROOT/ndk/" || echo "No NDK directory found"
+          else
+            echo "✅ NDK verified: $ANDROID_SDK_ROOT/ndk/28.1.13356709"
+          fi
+
+          echo "Building APK (this may take 10-15 minutes)..."
+          flutter build apk --release --build-number="$PROJECT_BUILD_NUMBER" &
+          BUILD_PID=$!
+
+          # Monitor build progress (30 minute timeout)
+          TIMEOUT=1800
+          ELAPSED=0
+          while kill -0 $BUILD_PID 2>/dev/null; do
+            sleep 30
+            ELAPSED=$((ELAPSED + 30))
+            if [ $ELAPSED -ge $TIMEOUT ]; then
+              echo "❌ Build timed out after 30 minutes"
+              kill -9 $BUILD_PID 2>/dev/null
+              exit 1
+            fi
+            if [ $((ELAPSED % 120)) -eq 0 ]; then
+              echo "⏱️ Build running... $((ELAPSED / 60)) minutes elapsed"
+            fi
+          done
+
+          wait $BUILD_PID
+          BUILD_EXIT=$?
+
+          if [ $BUILD_EXIT -eq 0 ]; then
+            echo "✅ Android APK build complete"
+            ls -lh build/app/outputs/flutter-apk/*.apk
+          else
+            echo "❌ Build failed with exit code $BUILD_EXIT"
+            exit $BUILD_EXIT
+          fi
+
+      - name: Build iOS IPA (manual signing)
+        script: |
+          # Set up keychain for code signing
+          keychain initialize
+
+          # Set up provisioning profiles
+          PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_HOME"
+          PROFILE_PATH="$(mktemp "$PROFILES_HOME"/$(uuidgen).mobileprovision)"
+          echo ${CM_PROVISIONING_PROFILE} | base64 --decode > "$PROFILE_PATH"
+          echo "Saved provisioning profile $PROFILE_PATH"
+
+          # Set up signing certificate
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
+
+          # Apply profiles to Xcode project
+          xcode-project use-profiles
+
+          # Build iOS IPA
+          flutter build ipa \
+            --release \
+            --build-number="$PROJECT_BUILD_NUMBER" \
+            --export-options-plist=/Users/builder/export_options.plist
+
+          echo "Generated files:"
+          find build -name "*.ipa" -o -name "*.xcarchive" | head -10
+
+      - name: Create release notes
+        script: |
+          echo "Build #$PROJECT_BUILD_NUMBER" > release_notes.txt
+          echo "Branch: $CM_BRANCH" >> release_notes.txt
+          echo "Commit: $(echo $CM_COMMIT | cut -c1-8)" >> release_notes.txt
+          echo "" >> release_notes.txt
+
+          if [ -f "CHANGELOG.md" ]; then
+            echo "Latest Changes:" >> release_notes.txt
+            echo "" >> release_notes.txt
+            sed '/^---$/q' CHANGELOG.md | sed '$d' | tail -n +3 >> release_notes.txt
+          else
+            echo "Latest Changes:" >> release_notes.txt
+            echo "" >> release_notes.txt
+            echo "• Barcode scanning improvements" >> release_notes.txt
+            echo "• ISBN lookup reliability fixes" >> release_notes.txt
+            echo "• UI/UX enhancements" >> release_notes.txt
+          fi
+
+          echo "" >> release_notes.txt
+          echo "Built on: $(date)" >> release_notes.txt
+          echo "Created release notes:"
+          cat release_notes.txt
+
+      - name: Authenticate Firebase CLI for App Distribution
+        script: |
+          echo "Authenticating Firebase CLI..."
+          echo "$FIREBASE_SERVICE_ACCOUNT_KEY" > "$CM_BUILD_DIR/firebase_service_account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$CM_BUILD_DIR/firebase_service_account.json"
+          echo "Firebase CLI authentication credentials set."
+
+    artifacts:
+      - build/app/outputs/**/*.apk
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - build/**/*.ipa
+      - flutter_drive.log
+
+    publishing:
+      # 1) Build Dashboard: enable public link in Codemagic UI:
+      # App settings → Build dashboards → Public link ON (no YAML needed).
+
+      # 2) Firebase App Distribution
+      firebase:
+        firebase_service_account: $FIREBASE_SERVICE_ACCOUNT
+        android:
+          app_id: $FIREBASE_APP_ID_ANDROID
+          groups:
+            - testers
+        ios:
+          app_id: $FIREBASE_APP_ID_IOS
+          groups:
+            - testers
+
+  # beta:
+  #   name: Beta (TestFlight + Play Internal)
+  #   max_build_duration: 25
+  #   instance_type: mac_mini_m1
+  #   working_directory: mobile
+  #
+  #   environment:
+  #     flutter: stable
+  #     xcode: latest
+  #     cocoapods: default
+  #     vars:
+  #       ANDROID_PACKAGE_NAME: com.example.book_collection_scanner
+  #       IOS_BUNDLE_ID: com.example.bookCollectionScanner
+  #     groups:
+  #       - android_signing
+  #       - store_credentials     # ASC + Google Play
+  #       - ios_signing
+  #
+  #   triggering:
+  #     events:
+  #       - tag
+  #     branch_patterns:
+  #       - pattern: "beta"
+  #         include: true
+  #         source: true
+  #     tag_patterns:
+  #       - pattern: "v+([0-9]).+([0-9]).+([0-9])"
+  #         include: true
+  #
+  #   cache:
+  #     cache_paths:
+  #       - ~/.pub-cache
+  #       - ~/.gradle/caches
+  #       - ~/.gradle/wrapper
+  #
+  #   scripts:
+  #     - name: Flutter pub get
+  #       script: flutter pub get
+  #
+  #     - name: Set up Android keystore
+  #       script: |
+  #         echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
+  #         cat > android/key.properties <<EOF
+  #         storePassword=$ANDROID_KEYSTORE_PASSWORD
+  #         keyPassword=$ANDROID_KEY_PASSWORD
+  #         keyAlias=$ANDROID_KEY_ALIAS
+  #         storeFile=keystore.jks
+  #         EOF
+  #
+  #     - name: Build Android AAB (Play)
+  #       script: |
+  #         flutter build appbundle --release --build-number="$PROJECT_BUILD_NUMBER"
+  #
+  #     - name: Build iOS IPA (App Store)
+  #       script: |
+  #         cat > $CM_BUILD_DIR/ExportOptions.plist <<'PLIST'
+  #         <?xml version="1.0" encoding="UTF-8"?>
+  #         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+  #         <plist version="1.0">
+  #         <dict>
+  #           <key>compileBitcode</key><false/>
+  #           <key>destination</key><string>export</string>
+  #           <key>method</key><string>app-store</string>
+  #           <key>signingStyle</key><string>automatic</string>
+  #           <key>stripSwiftSymbols</key><true/>
+  #           <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+  #         </dict>
+  #         </plist>
+  #         PLIST
+  #
+  #         flutter build ipa \
+  #           --export-options-plist=$CM_BUILD_DIR/ExportOptions.plist \
+  #           --build-number="$PROJECT_BUILD_NUMBER"
+  #
+  #   artifacts:
+  #     - build/app/outputs/**/*.aab
+  #     - build/ios/ipa/*.ipa
+  #
+  #   publishing:
+  #     app_store_connect:
+  #       api_key: $ASC_API_KEY
+  #       key_id: $ASC_KEY_ID
+  #       issuer_id: $ASC_ISSUER_ID
+  #       submit_to_testflight: true
+  #       beta_groups:
+  #         - External Testers
+  #     google_play:
+  #       credentials: $GOOGLE_PLAY_JSON
+  #       track: internal
+  #       in_app_update_priority: 1
+  #       changes_not_sent_for_review: true
+
+  default-workflow:
+    name: Default Workflow
+    max_build_duration: 25
+    instance_type: mac_mini_m1
+    working_directory: mobile   # Flutter project lives in mobile/
+    environment:
+      flutter: stable
+      xcode: latest
+      vars:
+        APP_NAME: "Book Collection Scanner"
+    scripts:
+      - name: Install dependencies
+        script: flutter pub get
+      - name: Run tests
+        script: flutter test
+      - name: Build Android APK
+        script: flutter build apk --release --build-number="$PROJECT_BUILD_NUMBER"
+      - name: Build iOS IPA
+        script: flutter build ipa --release --build-number="$PROJECT_BUILD_NUMBER"
+    artifacts:
+      - build/app/outputs/flutter-apk/app-release.apk
+      - build/ios/ipa/*.ipa
+    publishing:
+      email:
+        recipients:
+          - "YOUR_EMAIL@example.com"   # TODO: replace with your email
+
+# When ready for app stores, compute build numbers from stores:
+# scripts:
+#   - name: Compute next Android build number from Google Play
+#     script: |
+#       pip3 install -q codemagic-cli-tools
+#       LATEST=$(google-play get-latest-build-number --package-name "$ANDROID_PACKAGE_NAME")
+#       NEXT=$((LATEST + 1))
+#       echo "NEXT_ANDROID_BUILD_NUMBER=$NEXT" >> $CM_ENV
+#
+#   - name: Compute next iOS build number from App Store/TestFlight
+#     script: |
+#       pip3 install -q codemagic-cli-tools
+#       LATEST=$(app-store-connect get-latest-build-number "$APP_STORE_APPLE_ID")
+#       NEXT=$((LATEST + 1))
+#       echo "NEXT_IOS_BUILD_NUMBER=$NEXT" >> $CM_ENV

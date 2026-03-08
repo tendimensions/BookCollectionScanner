@@ -1,0 +1,47 @@
+# ── Python / FastAPI ──────────────────────────────────────────────────────────
+server/.venv/
+server/__pycache__/
+server/**/__pycache__/
+server/*.pyc
+server/*.pyo
+server/*.egg-info/
+server/.env
+server/books.db
+server/data/
+
+# ── Node / React Admin ────────────────────────────────────────────────────────
+server/admin/node_modules/
+server/admin/dist/
+server/admin/.env
+server/admin/.env.local
+server/admin/.env.*.local
+
+# ── Flutter / Dart ────────────────────────────────────────────────────────────
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/key.properties
+mobile/android/app/google-services.json
+mobile/ios/.symlinks/
+mobile/ios/Flutter/flutter_export_environment.sh
+mobile/ios/Pods/
+mobile/ios/Runner.xcworkspace/xcuserdata/
+mobile/ios/Runner/GoogleService-Info.plist
+mobile/.packages
+mobile/pubspec.lock   # uncomment to track exact versions (recommended for apps)
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+data/
+.env
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/settings.json
+.vscode/launch.json
