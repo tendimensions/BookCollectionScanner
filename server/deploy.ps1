@@ -247,14 +247,12 @@ Write-OK $dockerVersion
 Write-Step "Backing up database on remote"
 Invoke-SSH @"
 set -e
-DB_PATH=$Destination/data/books.db
-if [ -f "\$DB_PATH" ]; then
-  STAMP=\$(date +%Y-%m-%d_%H-%M-%S)
-  BACKUP_PATH=$Destination/data/books_\${STAMP}.db
-  cp "\$DB_PATH" "\$BACKUP_PATH"
-  echo "  Backup created: \$BACKUP_PATH"
+if [ -f $Destination/data/books.db ]; then
+  STAMP=`$(date +%Y-%m-%d_%H-%M-%S)
+  cp $Destination/data/books.db ~/books_`${STAMP}.db
+  echo "Backup created: ~/books_`${STAMP}.db"
 else
-  echo "  No database found yet — skipping backup"
+  echo "No database found yet -- skipping backup"
 fi
 "@
 Write-OK "Database backup done"
