@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../models/book_models.dart';
 import '../services/api_service.dart';
 import '../services/isbn_lookup_service.dart';
@@ -31,16 +32,29 @@ class _ScanScreenState extends State<ScanScreen> {
   final IsbnLookupService _isbnService = const IsbnLookupService();
 
   bool _processing = false;
+  bool _torchOn = false;
   String? _lastIsbn;
   DateTime? _lastScanTime;
 
   static const _debounceDuration = Duration(seconds: 2);
 
   @override
+  void initState() {
+    super.initState();
+    WakelockPlus.enable();
+  }
+
+  @override
   void dispose() {
+    WakelockPlus.disable();
     _controller.dispose();
     _audioPlayer.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleTorch() async {
+    await _controller.toggleTorch();
+    setState(() => _torchOn = !_torchOn);
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
@@ -129,7 +143,7 @@ class _ScanScreenState extends State<ScanScreen> {
             controller: _controller,
             onDetect: _onDetect,
           ),
-          // Top info bar
+          // Top info bar (category / tags + processing indicator)
           SafeArea(
             child: Container(
               color: Colors.black54,
@@ -144,8 +158,25 @@ class _ScanScreenState extends State<ScanScreen> {
                           style: const TextStyle(color: Colors.white70, fontSize: 12)),
                   ]),
                 ),
-                if (_processing) const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
+                if (_processing)
+                  const SizedBox(width: 20, height: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)),
               ]),
+            ),
+          ),
+          // Flashlight toggle — top-right corner
+          Positioned(
+            top: 0,
+            right: 0,
+            child: SafeArea(
+              child: IconButton(
+                icon: Icon(
+                  _torchOn ? Icons.flash_on : Icons.flash_off,
+                  color: Colors.white,
+                ),
+                tooltip: _torchOn ? 'Turn off flashlight' : 'Turn on flashlight',
+                onPressed: _toggleTorch,
+              ),
             ),
           ),
           // Stop scanning button
