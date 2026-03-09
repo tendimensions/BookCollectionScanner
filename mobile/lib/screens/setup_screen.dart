@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/book_models.dart';
 import '../services/api_service.dart';
 import 'scan_screen.dart';
+import 'server_config_screen.dart';
 
 class SetupScreen extends StatefulWidget {
   final ApiService api;
@@ -106,7 +107,30 @@ class _SetupScreenState extends State<SetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Book Collection Scanner')),
+      appBar: AppBar(
+        title: const Text('Book Collection Scanner'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            tooltip: 'Server settings',
+            onPressed: () async {
+              final navigator = Navigator.of(context);
+              final newUrl = await navigator.push<String>(
+                MaterialPageRoute(
+                  builder: (_) => const ServerConfigScreen(allowBack: true),
+                ),
+              );
+              if (newUrl != null) {
+                navigator.pushReplacement(
+                  MaterialPageRoute(
+                    builder: (_) => SetupScreen(api: ApiService(baseUrl: newUrl)),
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
