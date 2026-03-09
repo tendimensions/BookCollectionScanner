@@ -87,6 +87,7 @@ class _ScanScreenState extends State<ScanScreen> {
         categoryId: widget.category.id,
         tagIds: widget.tags.map((t) => t.id).toList(),
         isbnRawData: metadata?.rawData,
+        notes: metadata == null ? 'No metadata found for this ISBN' : null,
       );
 
       await widget.api.createBook(request);

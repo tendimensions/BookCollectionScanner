@@ -57,6 +57,7 @@ class BookCreate(BaseModel):
     category_id: int
     tag_ids: List[int] = []
     isbn_raw_data: Optional[Dict[str, Any]] = None
+    notes: Optional[str] = None
 
     @field_validator("tag_ids")
     @classmethod
@@ -69,6 +70,7 @@ class BookCreate(BaseModel):
 class BookUpdate(BaseModel):
     category_id: Optional[int] = None
     tag_ids: Optional[List[int]] = None
+    notes: Optional[str] = None
 
     @field_validator("tag_ids")
     @classmethod
@@ -93,6 +95,7 @@ class BookOut(BaseModel):
     category: CategoryOut
     tags: List[TagOut]
     isbn_raw_data: Optional[str]
+    notes: Optional[str]
     created_at: datetime
     updated_at: datetime
 
@@ -117,6 +120,11 @@ class BookListOut(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class BookListResponse(BaseModel):
+    items: List[BookListOut]
+    total: int
 
 
 # ── Export / Import ───────────────────────────────────────────────────────────

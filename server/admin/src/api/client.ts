@@ -34,6 +34,7 @@ export interface Book {
   category: Category;
   tags: Tag[];
   isbn_raw_data: string | null;
+  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +55,11 @@ export const deleteTag = (id: number) => api.delete(`/tags/${id}`);
 
 // ── Books ─────────────────────────────────────────────────────────────────────
 
+export interface BookListResponse {
+  items: Book[];
+  total: number;
+}
+
 export interface BookListParams {
   search?: string;
   category_id?: number;
@@ -65,11 +71,23 @@ export interface BookListParams {
 }
 
 export const getBooks = (params?: BookListParams) =>
-  api.get<Book[]>('/books', { params }).then(r => r.data);
+  api.get<BookListResponse>('/books', { params }).then(r => r.data);
 
 export const getBook = (id: number) => api.get<Book>(`/books/${id}`).then(r => r.data);
 
-export const updateBook = (id: number, data: { category_id?: number; tag_ids?: number[] }) =>
+export interface BookCreateParams {
+  isbn: string;
+  title?: string;
+  authors?: string[];
+  category_id: number;
+  tag_ids?: number[];
+  notes?: string;
+}
+
+export const createBook = (data: BookCreateParams) =>
+  api.post<Book>('/books', data).then(r => r.data);
+
+export const updateBook = (id: number, data: { category_id?: number; tag_ids?: number[]; notes?: string }) =>
   api.put<Book>(`/books/${id}`, data).then(r => r.data);
 
 export const deleteBook = (id: number) => api.delete(`/books/${id}`);

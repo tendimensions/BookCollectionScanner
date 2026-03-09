@@ -11,10 +11,11 @@ import {
 } from '@mui/x-data-grid';
 import type { GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
 import { GridToolbarContainer } from '@mui/x-data-grid';
+import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import {
-  getBooks, getBook, getCategories, getTags, updateBook, deleteBook, exportData,
+  getBooks, getBook, getCategories, getTags, updateBook, deleteBook, exportData, createBook,
 } from '../api/client';
 import type { Book, Category, Tag, BookListParams } from '../api/client';
 
@@ -42,6 +43,7 @@ function BookDrawer({ bookId, onClose, onSaved, categories, tags }: BookDrawerPr
   const [saving, setSaving] = useState(false);
   const [categoryId, setCategoryId] = useState<string>('');
   const [tagIdStrings, setTagIdStrings] = useState<string[]>([]);
+  const [notes, setNotes] = useState<string>('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -52,6 +54,7 @@ function BookDrawer({ bookId, onClose, onSaved, categories, tags }: BookDrawerPr
         setBook(b);
         setCategoryId(String(b.category?.id ?? ''));
         setTagIdStrings(b.tags?.map(t => String(t.id)) ?? []);
+        setNotes(b.notes ?? '');
       })
       .catch(() => setError('Failed to load book'))
       .finally(() => setLoading(false));
@@ -64,6 +67,7 @@ function BookDrawer({ bookId, onClose, onSaved, categories, tags }: BookDrawerPr
       await updateBook(book.id, {
         category_id: Number(categoryId),
         tag_ids: tagIdStrings.map(Number),
+        notes: notes || undefined,
       });
       onSaved();
       onClose();
@@ -77,98 +81,231 @@ function BookDrawer({ bookId, onClose, onSaved, categories, tags }: BookDrawerPr
   const open = bookId != null;
 
   return (
-    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 420, p: 3 } }}>
-      {loading && <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>}
-      {!loading && book && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-            {book.thumbnail_url && (
-              <Box component="img" src={book.thumbnail_url} alt="cover"
-                sx={{ width: 80, height: 110, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
-            )}
-            <Box>
-              <Typography variant="h6" sx={{ lineHeight: 1.3 }}>{book.title ?? '(no title)'}</Typography>
-              <Typography variant="body2" color="text.secondary">{parseAuthors(book.authors)}</Typography>
-            </Box>
-          </Box>
-
-          <Divider />
-
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {([
-              ['ISBN', book.isbn],
-              ['Publisher', book.publisher],
-              ['Published', book.published_date],
-              ['Pages', book.page_count?.toString()],
-              ['Language', book.language],
-            ] as [string, string | null | undefined][]).map(([label, val]) => val && (
-              <Box key={label} sx={{ display: 'flex', gap: 1 }}>
-                <Typography variant="body2" sx={{ fontWeight: 600, width: 80, flexShrink: 0 }}>{label}</Typography>
-                <Typography variant="body2" color="text.secondary">{val}</Typography>
+    <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 420, display: 'flex', flexDirection: 'column' } }}>
+      {/* Push content below the fixed AppBar */}
+      <Toolbar />
+      <Box sx={{ flex: 1, overflowY: 'auto', p: 3, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {loading && <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}><CircularProgress /></Box>}
+        {!loading && book && (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+              {book.thumbnail_url && (
+                <Box component="img" src={book.thumbnail_url} alt="cover"
+                  sx={{ width: 80, height: 110, objectFit: 'cover', borderRadius: 1, flexShrink: 0 }} />
+              )}
+              <Box>
+                <Typography variant="h6" sx={{ lineHeight: 1.3 }}>{book.title ?? '(no title)'}</Typography>
+                <Typography variant="body2" color="text.secondary">{parseAuthors(book.authors)}</Typography>
               </Box>
-            ))}
-          </Box>
+            </Box>
 
-          {book.description && (
-            <Typography variant="body2" color="text.secondary" sx={{
-              overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
-            }}>
-              {book.description}
-            </Typography>
-          )}
+            <Divider />
 
-          <Divider />
-
-          <FormControl fullWidth size="small">
-            <InputLabel>Category *</InputLabel>
-            <Select
-              value={categoryId}
-              label="Category *"
-              onChange={e => setCategoryId(e.target.value)}
-            >
-              {categories.map(c => <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>)}
-            </Select>
-          </FormControl>
-
-          <FormControl fullWidth size="small">
-            <InputLabel>Tags</InputLabel>
-            <Select
-              multiple
-              value={tagIdStrings}
-              onChange={e => {
-                const val = e.target.value;
-                setTagIdStrings(typeof val === 'string' ? val.split(',') : val);
-              }}
-              input={<OutlinedInput label="Tags" />}
-              renderValue={selected =>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {selected.map(id => {
-                    const t = tags.find(t => String(t.id) === id);
-                    return t ? <Chip key={id} label={t.name} size="small" /> : null;
-                  })}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {([
+                ['ISBN', book.isbn],
+                ['Publisher', book.publisher],
+                ['Published', book.published_date],
+                ['Pages', book.page_count?.toString()],
+                ['Language', book.language],
+              ] as [string, string | null | undefined][]).map(([label, val]) => val && (
+                <Box key={label} sx={{ display: 'flex', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, width: 80, flexShrink: 0 }}>{label}</Typography>
+                  <Typography variant="body2" color="text.secondary">{val}</Typography>
                 </Box>
-              }
-            >
-              {tags.map(t => (
-                <MenuItem key={t.id} value={String(t.id)}>
-                  <Checkbox checked={tagIdStrings.includes(String(t.id))} />
-                  <ListItemText primary={t.name} />
-                </MenuItem>
               ))}
-            </Select>
-          </FormControl>
+            </Box>
 
-          <Box sx={{ mt: 'auto', display: 'flex', gap: 1 }}>
-            <Button variant="contained" onClick={handleSave} disabled={saving || !categoryId} fullWidth>
-              {saving ? <CircularProgress size={20} /> : 'Save'}
-            </Button>
-            <Button variant="outlined" onClick={onClose} fullWidth>Cancel</Button>
-          </Box>
+            {book.description && (
+              <Typography variant="body2" color="text.secondary" sx={{
+                overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
+              }}>
+                {book.description}
+              </Typography>
+            )}
 
-          {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
-        </Box>
-      )}
+            <Divider />
+
+            <FormControl fullWidth size="small">
+              <InputLabel>Category *</InputLabel>
+              <Select
+                value={categoryId}
+                label="Category *"
+                onChange={e => setCategoryId(e.target.value)}
+              >
+                {categories.map(c => <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>)}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth size="small">
+              <InputLabel>Tags</InputLabel>
+              <Select
+                multiple
+                value={tagIdStrings}
+                onChange={e => {
+                  const val = e.target.value;
+                  setTagIdStrings(typeof val === 'string' ? val.split(',') : val);
+                }}
+                input={<OutlinedInput label="Tags" />}
+                renderValue={selected =>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map(id => {
+                      const t = tags.find(t => String(t.id) === id);
+                      return t ? <Chip key={id} label={t.name} size="small" /> : null;
+                    })}
+                  </Box>
+                }
+              >
+                {tags.map(t => (
+                  <MenuItem key={t.id} value={String(t.id)}>
+                    <Checkbox checked={tagIdStrings.includes(String(t.id))} />
+                    <ListItemText primary={t.name} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Notes"
+              multiline
+              minRows={2}
+              maxRows={5}
+              fullWidth
+              size="small"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
+
+            <Box sx={{ mt: 'auto', display: 'flex', gap: 1 }}>
+              <Button variant="contained" onClick={handleSave} disabled={saving || !categoryId} fullWidth>
+                {saving ? <CircularProgress size={20} /> : 'Save'}
+              </Button>
+              <Button variant="outlined" onClick={onClose} fullWidth>Cancel</Button>
+            </Box>
+
+            {error && <Alert severity="error" onClose={() => setError('')}>{error}</Alert>}
+          </>
+        )}
+      </Box>
     </Drawer>
+  );
+}
+
+interface AddBookDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+  categories: Category[];
+  tags: Tag[];
+}
+
+function AddBookDialog({ open, onClose, onCreated, categories, tags }: AddBookDialogProps) {
+  const [isbn, setIsbn] = useState('');
+  const [title, setTitle] = useState('');
+  const [authorsText, setAuthorsText] = useState('');
+  const [categoryId, setCategoryId] = useState('');
+  const [tagIdStrings, setTagIdStrings] = useState<string[]>([]);
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const reset = () => {
+    setIsbn(''); setTitle(''); setAuthorsText(''); setCategoryId('');
+    setTagIdStrings([]); setNotes(''); setError('');
+  };
+
+  const handleClose = () => { reset(); onClose(); };
+
+  const handleSave = async () => {
+    if (!isbn.trim() || !categoryId) return;
+    setSaving(true);
+    setError('');
+    try {
+      const authors = authorsText.trim()
+        ? authorsText.split(',').map(a => a.trim()).filter(Boolean)
+        : undefined;
+      await createBook({
+        isbn: isbn.trim(),
+        title: title.trim() || undefined,
+        authors,
+        category_id: Number(categoryId),
+        tag_ids: tagIdStrings.map(Number),
+        notes: notes.trim() || undefined,
+      });
+      onCreated();
+      handleClose();
+    } catch {
+      setError('Failed to create book');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+      <DialogTitle>Add Book Manually</DialogTitle>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+        <TextField
+          label="ISBN *" value={isbn} onChange={e => setIsbn(e.target.value)}
+          size="small" autoFocus
+          helperText="13-digit barcode number"
+        />
+        <TextField
+          label="Title" value={title} onChange={e => setTitle(e.target.value)} size="small"
+        />
+        <TextField
+          label="Authors" value={authorsText} onChange={e => setAuthorsText(e.target.value)}
+          size="small" helperText="Comma-separated: Jane Smith, John Doe"
+        />
+        <FormControl fullWidth size="small" required>
+          <InputLabel>Category *</InputLabel>
+          <Select value={categoryId} label="Category *" onChange={e => setCategoryId(e.target.value)}>
+            {categories.map(c => <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>)}
+          </Select>
+        </FormControl>
+        <FormControl fullWidth size="small">
+          <InputLabel>Tags</InputLabel>
+          <Select
+            multiple value={tagIdStrings}
+            onChange={e => {
+              const val = e.target.value;
+              setTagIdStrings(typeof val === 'string' ? val.split(',') : val);
+            }}
+            input={<OutlinedInput label="Tags" />}
+            renderValue={selected =>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {selected.map(id => {
+                  const t = tags.find(t => String(t.id) === id);
+                  return t ? <Chip key={id} label={t.name} size="small" /> : null;
+                })}
+              </Box>
+            }
+          >
+            {tags.map(t => (
+              <MenuItem key={t.id} value={String(t.id)}>
+                <Checkbox checked={tagIdStrings.includes(String(t.id))} />
+                <ListItemText primary={t.name} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Notes" value={notes} onChange={e => setNotes(e.target.value)}
+          size="small" multiline minRows={2}
+        />
+        {error && <Alert severity="error">{error}</Alert>}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button
+          variant="contained"
+          onClick={handleSave}
+          disabled={saving || !isbn.trim() || !categoryId}
+        >
+          {saving ? <CircularProgress size={20} /> : 'Add Book'}
+        </Button>
+      </DialogActions>
+    </Dialog>
   );
 }
 
@@ -216,6 +353,7 @@ function BooksToolbar({ search, onSearch, categoryId, onCategory, tagId, onTag, 
 
 export default function BooksPage() {
   const [books, setBooks] = useState<Book[]>([]);
+  const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
@@ -225,6 +363,7 @@ export default function BooksPage() {
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [sortModel, setSortModel] = useState<GridSortModel>([{ field: 'created_at', sort: 'desc' }]);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [snack, setSnack] = useState('');
@@ -244,7 +383,8 @@ export default function BooksPage() {
     }
     try {
       const data = await getBooks(params);
-      setBooks(data);
+      setBooks(data.items);
+      setTotal(data.total);
     } catch {
       setSnack('Failed to load books');
     } finally {
@@ -323,14 +463,21 @@ export default function BooksPage() {
       <Toolbar disableGutters sx={{ mb: 1 }}>
         <Typography variant="h5" sx={{ fontWeight: 600 }}>Books</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ ml: 2 }}>
-          {books.length} record{books.length !== 1 ? 's' : ''}
+          {total} record{total !== 1 ? 's' : ''}
         </Typography>
+        <Tooltip title="Add book manually">
+          <IconButton size="small" sx={{ ml: 1 }} onClick={() => setAddOpen(true)}>
+            <AddIcon />
+          </IconButton>
+        </Tooltip>
       </Toolbar>
 
       <DataGrid
         rows={books}
         columns={columns}
         loading={loading}
+        rowCount={total}
+        paginationMode="server"
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
         sortModel={sortModel}
@@ -360,6 +507,14 @@ export default function BooksPage() {
         bookId={selectedBookId}
         onClose={() => setSelectedBookId(null)}
         onSaved={loadBooks}
+        categories={categories}
+        tags={tags}
+      />
+
+      <AddBookDialog
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreated={() => { loadBooks(); setSnack('Book added'); }}
         categories={categories}
         tags={tags}
       />

@@ -31,6 +31,7 @@ class CreateBookRequest {
   final int categoryId;
   final List<int> tagIds;
   final Map<String, dynamic>? isbnRawData;
+  final String? notes;
 
   const CreateBookRequest({
     required this.isbn,
@@ -45,6 +46,7 @@ class CreateBookRequest {
     required this.categoryId,
     required this.tagIds,
     this.isbnRawData,
+    this.notes,
   });
 
   Map<String, dynamic> toJson() => {
@@ -60,5 +62,6 @@ class CreateBookRequest {
         'category_id': categoryId,
         'tag_ids': tagIds,
         if (isbnRawData != null) 'isbn_raw_data': isbnRawData,
+        if (notes != null) 'notes': notes,
       };
 }

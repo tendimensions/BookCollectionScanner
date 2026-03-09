@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -19,3 +20,8 @@ async def get_db() -> AsyncSession:
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Migrate existing databases: add notes column if not present
+        try:
+            await conn.execute(text("ALTER TABLE books ADD COLUMN notes TEXT"))
+        except Exception:
+            pass  # Column already exists

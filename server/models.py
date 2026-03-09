@@ -64,6 +64,7 @@ class Book(Base):
         Integer, ForeignKey("categories.id"), nullable=False, index=True
     )
     isbn_raw_data: Mapped[Optional[str]] = mapped_column(Text)  # Full JSON response
+    notes: Mapped[Optional[str]] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
