@@ -79,6 +79,13 @@ class _ScanScreenState extends State<ScanScreen> {
       return;
     }
 
+    // Only accept EAN-13 Bookland prefixes (978/979 = ISBN)
+    if (isbn.length == 13 && !isbn.startsWith('978') && !isbn.startsWith('979')) {
+      await _playError();
+      _showToast('Not an ISBN barcode ($isbn)', isError: true);
+      return;
+    }
+
     setState(() => _processing = true);
     _lastIsbn = isbn;
     _lastScanTime = now;

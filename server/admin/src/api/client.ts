@@ -63,7 +63,7 @@ export interface BookListResponse {
 export interface BookListParams {
   search?: string;
   category_id?: number;
-  tag_id?: number;
+  tag_ids?: number[];
   sort_by?: string;
   sort_dir?: 'asc' | 'desc';
   page?: number;

@@ -28,7 +28,7 @@ def _apply_search(stmt, search: str):
 async def list_books(
     search: Optional[str] = Query(None),
     category_id: Optional[int] = Query(None),
-    tag_id: Optional[int] = Query(None),
+    tag_ids: Optional[List[int]] = Query(None),
     sort_by: str = Query("created_at"),
     sort_dir: str = Query("desc"),
     page: int = Query(1, ge=1),
@@ -41,8 +41,8 @@ async def list_books(
         base = _apply_search(base, search)
     if category_id:
         base = base.where(Book.category_id == category_id)
-    if tag_id:
-        base = base.join(BookTag).where(BookTag.tag_id == tag_id)
+    if tag_ids:
+        base = base.join(BookTag).where(BookTag.tag_id.in_(tag_ids)).distinct()
 
     # Total count
     total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one()

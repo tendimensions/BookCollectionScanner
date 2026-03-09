@@ -10,7 +10,6 @@ import {
   DataGrid,
 } from '@mui/x-data-grid';
 import type { GridColDef, GridRenderCellParams, GridSortModel } from '@mui/x-data-grid';
-import { GridToolbarContainer } from '@mui/x-data-grid';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
@@ -316,16 +315,16 @@ interface ToolbarProps {
   onSearch: (v: string) => void;
   categoryId: string;
   onCategory: (v: string) => void;
-  tagId: string;
-  onTag: (v: string) => void;
+  tagIds: string[];
+  onTags: (v: string[]) => void;
   categories: Category[];
   tags: Tag[];
   onExport: () => void;
 }
 
-function BooksToolbar({ search, onSearch, categoryId, onCategory, tagId, onTag, categories, tags, onExport }: ToolbarProps) {
+function BooksToolbar({ search, onSearch, categoryId, onCategory, tagIds, onTags, categories, tags, onExport }: ToolbarProps) {
   return (
-    <GridToolbarContainer sx={{ p: 1, gap: 1, flexWrap: 'wrap' }}>
+    <Box sx={{ p: 1, gap: 1, flexWrap: 'wrap', display: 'flex', alignItems: 'center', borderBottom: 1, borderColor: 'divider' }}>
       <TextField
         size="small" placeholder="Search title, author, ISBN…" value={search}
         onChange={e => onSearch(e.target.value)} sx={{ minWidth: 220 }}
@@ -337,11 +336,28 @@ function BooksToolbar({ search, onSearch, categoryId, onCategory, tagId, onTag, 
           {categories.map(c => <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>)}
         </Select>
       </FormControl>
-      <FormControl size="small" sx={{ minWidth: 150 }}>
-        <InputLabel>Tag</InputLabel>
-        <Select value={tagId} label="Tag" onChange={e => onTag(e.target.value)}>
-          <MenuItem value=""><em>All</em></MenuItem>
-          {tags.map(t => <MenuItem key={t.id} value={String(t.id)}>{t.name}</MenuItem>)}
+      <FormControl size="small" sx={{ minWidth: 180 }}>
+        <InputLabel>Tags</InputLabel>
+        <Select
+          multiple
+          value={tagIds}
+          label="Tags"
+          onChange={e => {
+            const val = e.target.value;
+            onTags(typeof val === 'string' ? val.split(',') : val);
+          }}
+          input={<OutlinedInput label="Tags" />}
+          renderValue={selected =>
+            selected.length === 0 ? <em>All</em> :
+            selected.map(id => tags.find(t => String(t.id) === id)?.name).filter(Boolean).join(', ')
+          }
+        >
+          {tags.map(t => (
+            <MenuItem key={t.id} value={String(t.id)}>
+              <Checkbox checked={tagIds.includes(String(t.id))} />
+              <ListItemText primary={t.name} />
+            </MenuItem>
+          ))}
         </Select>
       </FormControl>
       <Box sx={{ ml: 'auto' }}>
@@ -349,7 +365,7 @@ function BooksToolbar({ search, onSearch, categoryId, onCategory, tagId, onTag, 
           <Button startIcon={<FileDownloadIcon />} onClick={onExport} size="small">Export</Button>
         </Tooltip>
       </Box>
-    </GridToolbarContainer>
+    </Box>
   );
 }
 
@@ -361,7 +377,7 @@ export default function BooksPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [tagFilter, setTagFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 });
   const [sortModel, setSortModel] = useState<GridSortModel>([{ field: 'created_at', sort: 'desc' }]);
   const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
@@ -378,7 +394,7 @@ export default function BooksPage() {
     };
     if (search) params.search = search;
     if (categoryFilter) params.category_id = Number(categoryFilter);
-    if (tagFilter) params.tag_id = Number(tagFilter);
+    if (tagFilter.length > 0) params.tag_ids = tagFilter.map(Number);
     if (sortModel[0]) {
       params.sort_by = sortModel[0].field;
       params.sort_dir = (sortModel[0].sort ?? 'desc') as 'asc' | 'desc';
@@ -474,6 +490,18 @@ export default function BooksPage() {
         </Tooltip>
       </Toolbar>
 
+      <BooksToolbar
+        search={search}
+        onSearch={v => { setSearch(v); setPaginationModel(m => ({ ...m, page: 0 })); }}
+        categoryId={categoryFilter}
+        onCategory={v => { setCategoryFilter(v); setPaginationModel(m => ({ ...m, page: 0 })); }}
+        tagIds={tagFilter}
+        onTags={v => { setTagFilter(v); setPaginationModel(m => ({ ...m, page: 0 })); }}
+        categories={categories}
+        tags={tags}
+        onExport={exportData}
+      />
+
       <DataGrid
         rows={books}
         columns={columns}
@@ -488,21 +516,6 @@ export default function BooksPage() {
         rowHeight={60}
         disableColumnFilter
         onRowClick={p => setSelectedBookId(p.row.id as number)}
-        slots={{
-          toolbar: () => (
-            <BooksToolbar
-              search={search}
-              onSearch={v => { setSearch(v); setPaginationModel(m => ({ ...m, page: 0 })); }}
-              categoryId={categoryFilter}
-              onCategory={v => { setCategoryFilter(v); setPaginationModel(m => ({ ...m, page: 0 })); }}
-              tagId={tagFilter}
-              onTag={v => { setTagFilter(v); setPaginationModel(m => ({ ...m, page: 0 })); }}
-              categories={categories}
-              tags={tags}
-              onExport={exportData}
-            />
-          ),
-        }}
         sx={{ flex: 1, cursor: 'pointer' }}
       />
 
