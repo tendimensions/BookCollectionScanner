@@ -64,6 +64,8 @@ workflows:
         script: |
           echo "Generating Android + iOS platform files..."
           flutter create --platforms=android,ios --org com.tendimensions .
+          # flutter create camelCases the bundle ID — fix it to match the provisioning profile
+          find ios -name "project.pbxproj" -exec sed -i '' 's/com\.tendimensions\.bookCollectionScanner/com.tendimensions.bookcollectionscanner/g' {} \;
           echo "✅ Platform files ready"
 
       - name: Run unit tests
@@ -250,6 +252,8 @@ workflows:
         script: |
           echo "Generating iOS platform files..."
           flutter create --platforms=ios --org com.tendimensions .
+          # flutter create camelCases the bundle ID — fix it to match the provisioning profile
+          find ios -name "project.pbxproj" -exec sed -i '' 's/com\.tendimensions\.bookCollectionScanner/com.tendimensions.bookcollectionscanner/g' {} \;
           echo "✅ iOS platform ready"
 
       - name: Run unit tests

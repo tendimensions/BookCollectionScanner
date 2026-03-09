@@ -6,16 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code (admin/dist/ is pre-built by deploy.ps1 before rsync)
 COPY . .
-
-# Build React admin if source is present
-RUN if [ -d "admin" ] && [ -f "admin/package.json" ]; then \
-      apt-get update && apt-get install -y nodejs npm && \
-      cd admin && npm ci && npm run build && \
-      apt-get remove -y nodejs npm && apt-get autoremove -y && \
-      rm -rf /var/lib/apt/lists/* /root/.npm; \
-    fi
 
 EXPOSE 8000
 
