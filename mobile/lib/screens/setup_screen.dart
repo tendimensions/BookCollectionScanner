@@ -71,20 +71,28 @@ class _SetupScreenState extends State<SetupScreen> {
     }
   }
 
-  Future<String?> _showNameDialog(String title) => showDialog<String>(
+  Future<String?> _showNameDialog(String title) async {
+    final controller = TextEditingController();
+    try {
+      return await showDialog<String>(
         context: context,
-        builder: (ctx) {
-          final controller = TextEditingController();
-          return AlertDialog(
-            title: Text(title),
-            content: TextField(controller: controller, autofocus: true, decoration: const InputDecoration(labelText: 'Name')),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-              TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Create')),
-            ],
-          );
-        },
+        builder: (ctx) => AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Name'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Create')),
+          ],
+        ),
       );
+    } finally {
+      controller.dispose();
+    }
+  }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));

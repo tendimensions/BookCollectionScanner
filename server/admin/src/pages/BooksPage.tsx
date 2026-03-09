@@ -486,6 +486,7 @@ export default function BooksPage() {
         onSortModelChange={setSortModel}
         pageSizeOptions={[25, 50, 100]}
         rowHeight={60}
+        disableColumnFilter
         onRowClick={p => setSelectedBookId(p.row.id as number)}
         slots={{
           toolbar: () => (
