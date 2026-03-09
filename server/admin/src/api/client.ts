@@ -77,3 +77,8 @@ export const deleteBook = (id: number) => api.delete(`/books/${id}`);
 // ── Export ────────────────────────────────────────────────────────────────────
 
 export const exportData = () => window.open('/api/export', '_blank');
+
+// ── Health / version ──────────────────────────────────────────────────────────
+
+export const getHealth = () =>
+  api.get<{ status: string; version: string }>('/health').then(r => r.data);

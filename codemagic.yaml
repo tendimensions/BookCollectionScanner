@@ -66,6 +66,8 @@ workflows:
           flutter create --platforms=android,ios --org com.tendimensions .
           # flutter create camelCases the bundle ID — fix it to match the provisioning profile
           find ios -name "project.pbxproj" -exec sed -i '' 's/com\.tendimensions\.bookCollectionScanner/com.tendimensions.bookcollectionscanner/g' {} \;
+          # Add camera permission — required for barcode scanning; missing key crashes the app on launch
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Required to scan book barcodes'" ios/Runner/Info.plist
           echo "✅ Platform files ready"
 
       - name: Run unit tests
@@ -254,6 +256,8 @@ workflows:
           flutter create --platforms=ios --org com.tendimensions .
           # flutter create camelCases the bundle ID — fix it to match the provisioning profile
           find ios -name "project.pbxproj" -exec sed -i '' 's/com\.tendimensions\.bookCollectionScanner/com.tendimensions.bookcollectionscanner/g' {} \;
+          # Add camera permission — required for barcode scanning; missing key crashes the app on launch
+          /usr/libexec/PlistBuddy -c "Add :NSCameraUsageDescription string 'Required to scan book barcodes'" ios/Runner/Info.plist
           echo "✅ iOS platform ready"
 
       - name: Run unit tests

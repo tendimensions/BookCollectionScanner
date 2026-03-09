@@ -47,6 +47,8 @@ class _ScanScreenState extends State<ScanScreen> {
     if (_processing) return;
     final barcodes = capture.barcodes;
 
+    if (barcodes.isEmpty) return;
+
     if (barcodes.length > 1) {
       await _playError();
       _showToast('Multiple barcodes detected. Please scan one at a time.', isError: true);

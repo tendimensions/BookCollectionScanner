@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
   AppBar, Box, Drawer, List, ListItemButton, ListItemIcon,
@@ -6,6 +7,7 @@ import {
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CategoryIcon from '@mui/icons-material/Category';
 import LabelIcon from '@mui/icons-material/Label';
+import { getHealth } from '../api/client';
 
 const DRAWER_WIDTH = 200;
 
@@ -18,6 +20,11 @@ const nav = [
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [version, setVersion] = useState<string | null>(null);
+
+  useEffect(() => {
+    getHealth().then(h => setVersion(h.version)).catch(() => {});
+  }, []);
 
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
@@ -29,10 +36,10 @@ export default function Layout() {
       </AppBar>
       <Drawer
         variant="permanent"
-        sx={{ width: DRAWER_WIDTH, flexShrink: 0, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box' } }}
+        sx={{ width: DRAWER_WIDTH, flexShrink: 0, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box', display: 'flex', flexDirection: 'column' } }}
       >
         <Toolbar />
-        <List>
+        <List sx={{ flex: 1 }}>
           {nav.map((item) => (
             <ListItemButton
               key={item.path}
@@ -44,6 +51,14 @@ export default function Layout() {
             </ListItemButton>
           ))}
         </List>
+        {version && (
+          <Typography
+            variant="caption"
+            sx={{ p: 1.5, color: 'text.disabled' }}
+          >
+            v{version}
+          </Typography>
+        )}
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <Toolbar />

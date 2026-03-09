@@ -3,11 +3,15 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import settings
 from database import init_db
 from routers import books, categories, export, tags
+
+_VERSION = (Path(__file__).parent / "VERSION").read_text().strip()
+_ADMIN_BUILD = Path(__file__).parent / "admin" / "dist"
 
 
 @asynccontextmanager
@@ -18,7 +22,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Book Collection Scanner API",
-    version="1.0.0",
+    version=_VERSION,
     lifespan=lifespan,
 )
 
@@ -38,13 +42,22 @@ app.include_router(export.router)
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "version": _VERSION}
 
 
-# Serve React admin build (when present)
-admin_build = Path(__file__).parent / "admin" / "dist"
-if admin_build.exists():
-    app.mount("/", StaticFiles(directory=str(admin_build), html=True), name="admin")
+# Serve React admin SPA (when present).
+# Mount /assets for hashed JS/CSS bundles, then catch-all for SPA routes so
+# that a hard refresh on /books doesn't return a JSON 404.
+if _ADMIN_BUILD.exists():
+    app.mount("/assets", StaticFiles(directory=str(_ADMIN_BUILD / "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Serve an exact file if it exists (favicon.ico, etc.), otherwise SPA shell.
+        candidate = _ADMIN_BUILD / full_path
+        if candidate.is_file():
+            return FileResponse(str(candidate))
+        return FileResponse(str(_ADMIN_BUILD / "index.html"))
 
 
 if __name__ == "__main__":
