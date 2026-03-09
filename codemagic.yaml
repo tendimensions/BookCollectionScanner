@@ -16,7 +16,7 @@ workflows:
       java: 21
       vars:
         # ---- App identifiers ----
-        ANDROID_PACKAGE_NAME: com.tendimensions.book_collection_scanner
+        ANDROID_PACKAGE_NAME: com.tendimensions.bookcollectionscanner
         IOS_BUNDLE_ID: com.tendimensions.bookcollectionscanner
 
         # ---- iOS export method ----
@@ -221,7 +221,7 @@ workflows:
   #     xcode: latest
   #     cocoapods: default
   #     vars:
-  #       ANDROID_PACKAGE_NAME: com.tendimensions.book_collection_scanner
+  #       ANDROID_PACKAGE_NAME: com.tendimensions.bookcollectionscanner
   #       IOS_BUNDLE_ID: com.tendimensions.bookcollectionscanner
   #     groups:
   #       - android_signing
