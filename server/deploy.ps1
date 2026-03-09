@@ -242,7 +242,24 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-OK $dockerVersion
 
-# ── Step 8: docker compose up ─────────────────────────────────────────────────
+# ── Step 8: Backup database ───────────────────────────────────────────────────
+
+Write-Step "Backing up database on remote"
+Invoke-SSH @"
+set -e
+DB_PATH=$Destination/data/books.db
+if [ -f "\$DB_PATH" ]; then
+  STAMP=\$(date +%Y-%m-%d_%H-%M-%S)
+  BACKUP_PATH=$Destination/data/books_\${STAMP}.db
+  cp "\$DB_PATH" "\$BACKUP_PATH"
+  echo "  Backup created: \$BACKUP_PATH"
+else
+  echo "  No database found yet — skipping backup"
+fi
+"@
+Write-OK "Database backup done"
+
+# ── Step 9: docker compose up ─────────────────────────────────────────────────
 
 Write-Step "Deploying on remote"
 $buildFlag = if ($SkipBuild) { "" } else { "--build" }
