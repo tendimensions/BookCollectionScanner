@@ -62,14 +62,9 @@ workflows:
 
       - name: Generate Android platform
         script: |
-          # Remove any stale android/ directory (e.g. leftover v1 embedding files)
-          # so flutter create generates a complete, clean v2 project.
-          rm -rf android/
-          echo "Generating fresh Android platform (v2 embedding)..."
+          echo "Generating Android platform files (v2 embedding)..."
           flutter create --platforms=android --org com.tendimensions .
-          chmod +x android/gradlew
           echo "✅ Android platform ready"
-          ls android/
 
       - name: Run unit tests
         script: |
