@@ -108,6 +108,8 @@ function BookDrawer({ bookId, onClose, onSaved, categories, tags }: BookDrawerPr
                 ['Published', book.published_date],
                 ['Pages', book.page_count?.toString()],
                 ['Language', book.language],
+                ['Added', new Date(book.created_at).toLocaleString()],
+                ['Modified', new Date(book.updated_at).toLocaleString()],
               ] as [string, string | null | undefined][]).map(([label, val]) => val && (
                 <Box key={label} sx={{ display: 'flex', gap: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, width: 80, flexShrink: 0 }}>{label}</Typography>
