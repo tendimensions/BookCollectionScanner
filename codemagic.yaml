@@ -60,11 +60,11 @@ workflows:
       - name: Flutter pub get
         script: flutter pub get
 
-      - name: Generate Android platform
+      - name: Generate platform files
         script: |
-          echo "Generating Android platform files (v2 embedding)..."
-          flutter create --platforms=android --org com.tendimensions .
-          echo "✅ Android platform ready"
+          echo "Generating Android + iOS platform files..."
+          flutter create --platforms=android,ios --org com.tendimensions .
+          echo "✅ Platform files ready"
 
       - name: Run unit tests
         script: |
@@ -205,6 +205,100 @@ workflows:
           app_id: $FIREBASE_ANDROID_APP_ID
           groups:
             - testers
+        ios:
+          app_id: $FIREBASE_IOS_APP_ID
+          groups:
+            - testers
+
+  ios-preview:
+    name: iOS Preview (shareable link)
+    max_build_duration: 25
+    instance_type: mac_mini_m1
+    working_directory: mobile
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      vars:
+        IOS_BUNDLE_ID: com.tendimensions.bookcollectionscanner
+        EXPORT_METHOD: ad-hoc
+      groups:
+        - ios_signing
+        - firebase_credentials
+
+    triggering:
+      events:
+        - tag
+      branch_patterns:
+        - pattern: "ios-preview"
+          include: true
+          source: true
+      tag_patterns:
+        - pattern: "ios-v+([0-9]).+([0-9]).+([0-9])"
+          include: true
+
+    cache:
+      cache_paths:
+        - ~/.pub-cache
+
+    scripts:
+      - name: Flutter pub get
+        script: flutter pub get
+
+      - name: Generate iOS platform files
+        script: |
+          echo "Generating iOS platform files..."
+          flutter create --platforms=ios --org com.tendimensions .
+          echo "✅ iOS platform ready"
+
+      - name: Run unit tests
+        script: |
+          echo "Running Flutter unit tests..."
+          flutter test --reporter compact
+          echo "✅ All tests passed!"
+
+      - name: Build iOS IPA (manual signing)
+        script: |
+          keychain initialize
+
+          PROFILES_HOME="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_HOME"
+          PROFILE_PATH="$(mktemp "$PROFILES_HOME"/$(uuidgen).mobileprovision)"
+          echo ${CM_PROVISIONING_PROFILE} | base64 --decode > "$PROFILE_PATH"
+          echo "Saved provisioning profile $PROFILE_PATH"
+
+          echo $CM_CERTIFICATE | base64 --decode > /tmp/certificate.p12
+          keychain add-certificates --certificate /tmp/certificate.p12 --certificate-password $CM_CERTIFICATE_PASSWORD
+
+          xcode-project use-profiles
+
+          flutter build ipa \
+            --release \
+            --build-number="$PROJECT_BUILD_NUMBER" \
+            --export-options-plist=/Users/builder/export_options.plist
+
+          echo "Generated files:"
+          find build -name "*.ipa" -o -name "*.xcarchive" | head -10
+
+      - name: Create release notes
+        script: |
+          echo "Build #$PROJECT_BUILD_NUMBER" > release_notes.txt
+          echo "Branch: $CM_BRANCH" >> release_notes.txt
+          echo "Commit: $(echo $CM_COMMIT | cut -c1-8)" >> release_notes.txt
+          echo "" >> release_notes.txt
+          echo "Built on: $(date)" >> release_notes.txt
+          echo "Created release notes:"
+          cat release_notes.txt
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/archive/*.xcarchive
+      - build/**/*.ipa
+
+    publishing:
+      firebase:
+        firebase_service_account: $FIREBASE_SERVICE_ACCOUNT
         ios:
           app_id: $FIREBASE_IOS_APP_ID
           groups:
