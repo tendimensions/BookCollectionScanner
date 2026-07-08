@@ -11,32 +11,32 @@ dependencies:
     sdk: flutter
 
   # Barcode scanning
-  mobile_scanner: ^7.0.0
+  mobile_scanner: 7.2.0
 
   # HTTP client
-  http: ^1.2.2
+  http: 1.6.0
 
   # State management
-  provider: ^6.1.2
+  provider: 6.1.5+1
 
   # Audio feedback (beep on scan)
-  audioplayers: ^6.1.0
+  audioplayers: 6.6.0
 
   # Persistent storage for server URL
-  shared_preferences: ^2.3.3
+  shared_preferences: 2.5.4
 
   # Keep screen on during scanning
-  wakelock_plus: ^1.2.8
+  wakelock_plus: 1.4.0
 
   # UI helpers
-  fluttertoast: ^8.2.8
+  fluttertoast: 8.2.14
 
-  cupertino_icons: ^1.0.8
+  cupertino_icons: 1.0.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: 5.0.0
 
 flutter:
   uses-material-design: true
